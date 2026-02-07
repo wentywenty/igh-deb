@@ -9,7 +9,7 @@ export KERNEL_SRC="${KERNEL_SRC:-/home/flora/orangepi-build/kernel/orange-pi-6.1
 
 # Package Information
 export PACKAGE_NAME="ethercat-igh"
-export DEB_VERSION="1.6"
+export DEB_VERSION="1.6.8"
 
 # Install Paths
 export PREFIX="/opt/ethercat"

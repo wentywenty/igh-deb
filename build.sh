@@ -110,20 +110,31 @@ mkdir -p "$DEB_BUILD_DIR/DEBIAN"
 cp -r "$WORK_DIR/debian/DEBIAN/"* "$DEB_BUILD_DIR/DEBIAN/"
 chmod 755 "$DEB_BUILD_DIR/DEBIAN/post"* "$DEB_BUILD_DIR/DEBIAN/pre"* 2>/dev/null || true
 
+# Get built kernel version
+KERNEL_SUFFIX=""
+if [ -d "$MODULES_DIR/lib/modules" ]; then
+    BUILD_KERNEL_VER=$(ls "$MODULES_DIR/lib/modules/" | head -n 1)
+    if [ -n "$BUILD_KERNEL_VER" ]; then
+        KERNEL_SUFFIX="_${BUILD_KERNEL_VER}"
+        echo "Detected built kernel version: $BUILD_KERNEL_VER"
+    fi
+fi
+
 # 5.4 Generate Control File if missing
 if [ ! -f "$DEB_BUILD_DIR/DEBIAN/control" ]; then
     echo "Generating basic control file..."
     cat <<EOF > "$DEB_BUILD_DIR/DEBIAN/control"
 Package: ${PACKAGE_NAME}
-Version: ${DEB_VERSION}
+Version: ${DEB_VERSION}${KERNEL_SUFFIX//_/-}
 Architecture: arm64
 Maintainer: Flora <2321901849@qq.com>
-Description: IgH EtherCAT Master
+Description: IgH EtherCAT Master (Kernel ${BUILD_KERNEL_VER})
 EOF
 fi
 
 # 5.5 Build DEB
-dpkg-deb --build "$DEB_BUILD_DIR" "$OUTPUT_DIR/${PACKAGE_NAME}_${DEB_VERSION}_arm64.deb"
+DEB_NAME="${PACKAGE_NAME}_${DEB_VERSION}${KERNEL_SUFFIX}_arm64.deb"
+dpkg-deb --build "$DEB_BUILD_DIR" "$OUTPUT_DIR/${DEB_NAME}"
 
 echo "=== Build Success! ==="
-echo "Package: $OUTPUT_DIR/${PACKAGE_NAME}_${DEB_VERSION}_arm64.deb"
+echo "Package: $OUTPUT_DIR/${DEB_NAME}"
