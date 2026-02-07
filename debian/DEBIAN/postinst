@@ -1,0 +1,55 @@
+#!/bin/bash
+set -e
+
+# 1. Prevent execution on host during build stage
+if [ "${HOST_BUILD_STAGE:-0}" -eq 1 ]; then
+    exit 0
+fi
+
+echo "Configuring EtherCAT kernel modules..."
+
+# 2. Get current kernel version
+KERNEL_VER=$(uname -r)
+
+# 3. Migrate modules if kernel version mismatch
+# Find where the package installed the modules (look into .list file)
+PKG_NAME="$DPKG_MAINTSCRIPT_PACKAGE"
+LIST_FILE="/var/lib/dpkg/info/${PKG_NAME}.list"
+
+if [ -f "$LIST_FILE" ]; then
+    # find path like /lib/modules/x.y.z/ethercat
+    INSTALLED_PATH=$(grep -m 1 "^/lib/modules/.*/ethercat" "$LIST_FILE" || true)
+    
+    if [ -n "$INSTALLED_PATH" ] && [ -d "$INSTALLED_PATH" ]; then
+        # Extract installed kernel version from path
+        INSTALLED_VER=$(echo "$INSTALLED_PATH" | awk -F/ '{print $4}')
+        
+        echo "Package installed modules for kernel: $INSTALLED_VER"
+        echo "System running kernel: $KERNEL_VER"
+        
+        # If versions differ, try to move them
+        if [ "$INSTALLED_VER" != "$KERNEL_VER" ]; then
+            TARGET_PATH="/lib/modules/$KERNEL_VER/ethercat"
+            echo "Version mismatch! Moving modules to $TARGET_PATH ..."
+            
+            mkdir -p "$(dirname "$TARGET_PATH")"
+            cp -r "$INSTALLED_PATH" "$TARGET_PATH"
+            
+            # Optional: Remove old path if it's empty or we want to clean up
+            # rm -rf "$INSTALLED_PATH"
+        fi
+    fi
+else
+    echo "Warning: Could not find package list file, skipping module migration."
+fi
+
+# 4. Update module dependencies
+# Use -F if System.map exists, otherwise run depmod -a
+if [ -f "/boot/System.map-$KERNEL_VER" ]; then
+    depmod -F "/boot/System.map-$KERNEL_VER" "$KERNEL_VER"
+else
+    depmod -a "$KERNEL_VER"
+fi
+
+echo "EtherCAT modules configured for kernel $KERNEL_VER"
+exit 0

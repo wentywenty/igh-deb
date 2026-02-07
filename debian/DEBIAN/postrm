@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+# Prevent execution on host during build stage
+if [ "${HOST_BUILD_STAGE:-0}" -eq 1 ]; then
+    exit 0
+fi
+
+KERNEL_VER=$(uname -r)
+
+# Update module dependencies
+# Use -F if System.map exists, otherwise run depmod -a
+if [ -f "/boot/System.map-$KERNEL_VER" ]; then
+    depmod -F "/boot/System.map-$KERNEL_VER" "$KERNEL_VER"
+else
+    depmod -a "$KERNEL_VER"
+fi
+
+exit 0

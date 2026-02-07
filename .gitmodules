@@ -1,0 +1,3 @@
+[submodule "ethercat"]
+	path = ethercat
+	url = https://gitlab.com/etherlab.org/ethercat
