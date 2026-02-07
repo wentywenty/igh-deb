@@ -101,6 +101,18 @@ fi
 
 # 5.2 Copy Modules
 if [ -d "$MODULES_DIR/lib" ]; then
+    # Remove unnecessary files to prevent conflicts
+    find "$MODULES_DIR" -name "modules.alias" -type f -delete
+    find "$MODULES_DIR" -name "modules.alias.bin" -type f -delete
+    find "$MODULES_DIR" -name "modules.dep" -type f -delete
+    find "$MODULES_DIR" -name "modules.dep.bin" -type f -delete
+    find "$MODULES_DIR" -name "modules.softdep" -type f -delete
+    find "$MODULES_DIR" -name "modules.symbols" -type f -delete
+    find "$MODULES_DIR" -name "modules.symbols.bin" -type f -delete
+    find "$MODULES_DIR" -name "modules.builtin.bin" -type f -delete
+    find "$MODULES_DIR" -name "modules.builtin.alias.bin" -type f -delete
+    find "$MODULES_DIR" -name "modules.devname" -type f -delete
+
     mkdir -p "$DEB_BUILD_DIR/lib"
     cp -r "$MODULES_DIR/lib" "$DEB_BUILD_DIR/"
 fi
