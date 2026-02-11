@@ -5,17 +5,24 @@ set -e
 source "$(dirname "$0")/env.sh"
 
 # Parse command line arguments
-# $1: CROSS_COMPILE path (optional, defaults to env.sh value)
+# $1: KERNEL_COMPILER (optional, e.g., "aarch64-none-linux-gnu-", defaults to env.sh value)
 # $2: KERNEL_SRC path (optional, defaults to env.sh value)
 
 if [ -n "$1" ]; then
-    CROSS_COMPILE="$1"
-    echo "Info: Using custom CROSS_COMPILE: $CROSS_COMPILE"
+    KERNEL_COMPILER="$1"
+    echo "Info: Using custom KERNEL_COMPILER: $KERNEL_COMPILER"
 fi
 
 if [ -n "$2" ]; then
     KERNEL_SRC="$2"
     echo "Info: Using custom KERNEL_SRC: $KERNEL_SRC"
+fi
+
+# Build the full CROSS_COMPILE with CCACHE if needed
+if [ -n "$CCACHE" ]; then
+    CROSS_COMPILE="$CCACHE $KERNEL_COMPILER"
+else
+    CROSS_COMPILE="$KERNEL_COMPILER"
 fi
 
 WORK_DIR=$(dirname "$(readlink -f "$0")")
