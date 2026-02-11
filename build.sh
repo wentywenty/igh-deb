@@ -37,6 +37,7 @@ echo "[2/5] Configure..."
     --host=aarch64-none-linux-gnu \
     --enable-kernel \
     --enable-generic \
+    --enable-igb \
     --disable-eoe \
     --enable-hrtimer \
     --with-systemdsystemunitdir="/lib/systemd/system" \
@@ -92,9 +93,9 @@ fi
 
 if [ -f "$CONFIG_FILE" ]; then
     echo "Configuring ethercat.conf..."
-    # Config Fix for generic driver
-    sed -i 's/^MASTER0_DEVICE=""/MASTER0_DEVICE="eth0"/' "$CONFIG_FILE"
-    sed -i 's/^DEVICE_MODULES=""/DEVICE_MODULES="generic"/' "$CONFIG_FILE"
+    # Config Fix for igb driver
+    sed -i 's/^MASTER0_DEVICE=""/MASTER0_DEVICE="enP3p49s0"/' "$CONFIG_FILE"
+    sed -i 's/^DEVICE_MODULES=""/DEVICE_MODULES="igb"/' "$CONFIG_FILE"
 else
     echo "Warning: ethercat.conf not found in package!"
 fi

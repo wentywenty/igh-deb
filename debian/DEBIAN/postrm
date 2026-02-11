@@ -16,4 +16,13 @@ else
     depmod -a "$KERNEL_VER"
 fi
 
+# Remove PATH configuration on purge
+if [ "$1" = "purge" ] || [ "$1" = "remove" ]; then
+    PROFILE_FILE="/etc/profile.d/ethercat.sh"
+    if [ -f "$PROFILE_FILE" ]; then
+        echo "Removing EtherCAT PATH configuration..."
+        rm -f "$PROFILE_FILE"
+    fi
+fi
+
 exit 0

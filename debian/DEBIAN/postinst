@@ -52,4 +52,29 @@ else
 fi
 
 echo "EtherCAT modules configured for kernel $KERNEL_VER"
+
+# 5. Add /opt/ethercat/bin to system PATH
+PROFILE_DIR="/etc/profile.d"
+PROFILE_FILE="$PROFILE_DIR/ethercat.sh"
+
+if [ ! -d "$PROFILE_DIR" ]; then
+    mkdir -p "$PROFILE_DIR"
+fi
+
+echo "Adding /opt/ethercat/bin to system PATH..."
+cat > "$PROFILE_FILE" <<'EOF'
+# Add EtherCAT tools to PATH
+if [ -d "/opt/ethercat/bin" ]; then
+    export PATH="/opt/ethercat/bin:$PATH"
+fi
+
+# Add EtherCAT libraries to LD_LIBRARY_PATH
+if [ -d "/opt/ethercat/lib" ]; then
+    export LD_LIBRARY_PATH="/opt/ethercat/lib:${LD_LIBRARY_PATH}"
+fi
+EOF
+
+chmod 644 "$PROFILE_FILE"
+echo "PATH configuration installed to $PROFILE_FILE"
+
 exit 0
