@@ -4,6 +4,20 @@ set -e
 # Load environment variables
 source "$(dirname "$0")/env.sh"
 
+# Parse command line arguments
+# $1: CROSS_COMPILE path (optional, defaults to env.sh value)
+# $2: KERNEL_SRC path (optional, defaults to env.sh value)
+
+if [ -n "$1" ]; then
+    CROSS_COMPILE="$1"
+    echo "Info: Using custom CROSS_COMPILE: $CROSS_COMPILE"
+fi
+
+if [ -n "$2" ]; then
+    KERNEL_SRC="$2"
+    echo "Info: Using custom KERNEL_SRC: $KERNEL_SRC"
+fi
+
 WORK_DIR=$(dirname "$(readlink -f "$0")")
 SOURCE_DIR="$WORK_DIR/ethercat"
 OUTPUT_DIR="$WORK_DIR/output"
