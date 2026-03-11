@@ -161,6 +161,8 @@ if [ ! -f "$DEB_BUILD_DIR/DEBIAN/control" ]; then
 Package: ${PACKAGE_NAME}
 Version: ${DEB_VERSION}${KERNEL_SUFFIX//_/-}
 Architecture: arm64
+Section: misc
+Priority: optional
 Maintainer: Flora <2321901849@qq.com>
 Description: IgH EtherCAT Master (Kernel ${BUILD_KERNEL_VER})
 EOF
