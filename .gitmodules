@@ -1,3 +1,4 @@
 [submodule "ethercat"]
-	path = ethercat
-	url = https://gitlab.com/etherlab.org/ethercat
+    path = ethercat
+    url = https://gitlab.com/wentywenty/ethercat.git
+    branch = stable-1.7
