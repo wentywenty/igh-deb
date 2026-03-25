@@ -67,14 +67,15 @@ cat > "$PROFILE_FILE" <<'EOF'
 if [ -d "/opt/ethercat/bin" ]; then
     export PATH="/opt/ethercat/bin:$PATH"
 fi
-
-# Add EtherCAT libraries to LD_LIBRARY_PATH
-if [ -d "/opt/ethercat/lib" ]; then
-    export LD_LIBRARY_PATH="/opt/ethercat/lib:${LD_LIBRARY_PATH}"
-fi
 EOF
 
 chmod 644 "$PROFILE_FILE"
 echo "PATH configuration installed to $PROFILE_FILE"
+
+# 6. Refresh dynamic linker cache so libethercat is found without LD_LIBRARY_PATH
+if command -v ldconfig >/dev/null 2>&1; then
+    echo "Refreshing dynamic linker cache..."
+    ldconfig
+fi
 
 exit 0

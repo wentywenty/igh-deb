@@ -25,4 +25,9 @@ if [ "$1" = "purge" ] || [ "$1" = "remove" ]; then
     fi
 fi
 
+# Refresh dynamic linker cache after package removal/purge.
+if command -v ldconfig >/dev/null 2>&1; then
+    ldconfig
+fi
+
 exit 0
