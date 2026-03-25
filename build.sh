@@ -4,6 +4,11 @@ set -e
 # Load environment variables
 source "$(dirname "$0")/env.sh"
 
+# Default KERNEL_COMPILER to CROSS_COMPILE from env.sh if not set
+if [ -z "$KERNEL_COMPILER" ] && [ -n "$CROSS_COMPILE" ]; then
+    KERNEL_COMPILER="$CROSS_COMPILE"
+fi
+
 # Parse command line arguments
 # $1: KERNEL_COMPILER (optional, e.g., "aarch64-none-linux-gnu-", defaults to env.sh value)
 # $2: KERNEL_SRC path (optional, defaults to env.sh value)
@@ -20,10 +25,13 @@ fi
 
 # Build the full CROSS_COMPILE with CCACHE if needed
 if [ -n "$CCACHE" ]; then
-    CROSS_COMPILE="$CCACHE $KERNEL_COMPILER"
+    export CROSS_COMPILE="$CCACHE $KERNEL_COMPILER"
 else
-    CROSS_COMPILE="$KERNEL_COMPILER"
+    export CROSS_COMPILE="$KERNEL_COMPILER"
 fi
+
+# Ensure ARCH is exported
+export ARCH=${ARCH:-arm64}
 
 WORK_DIR=$(dirname "$(readlink -f "$0")")
 SOURCE_DIR="$WORK_DIR/ethercat"
