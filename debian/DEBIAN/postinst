@@ -78,4 +78,14 @@ if command -v ldconfig >/dev/null 2>&1; then
     ldconfig
 fi
 
+# 7. Enable first-boot initialization service
+if command -v systemctl >/dev/null 2>&1 && [ -d "/run/systemd/system" ]; then
+    mkdir -p /var/lib/ethercat
+    systemctl daemon-reload || true
+    systemctl enable ethercat.service >/dev/null 2>&1 || true
+    systemctl enable ethercat-first-boot.service >/dev/null 2>&1 || true
+    echo "Enabled ethercat.service"
+    echo "Enabled ethercat-first-boot.service"
+fi
+
 exit 0

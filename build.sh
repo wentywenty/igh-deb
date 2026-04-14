@@ -129,6 +129,41 @@ else
     echo "Warning: ethercat.conf not found in package!"
 fi
 
+# 5.1.2 First-boot initialization assets
+mkdir -p "$DEB_BUILD_DIR/opt/ethercat/sbin"
+cat > "$DEB_BUILD_DIR/opt/ethercat/sbin/ethercat_init.sh" <<'EOF'
+#!/bin/bash
+set -e
+
+# Re-generate module dependencies for current running kernel.
+depmod -a
+
+# Hardware specific initialization can be added here.
+
+# Start EtherCAT service after environment is ready.
+systemctl restart ethercat
+EOF
+chmod 755 "$DEB_BUILD_DIR/opt/ethercat/sbin/ethercat_init.sh"
+
+mkdir -p "$DEB_BUILD_DIR/lib/systemd/system"
+cat > "$DEB_BUILD_DIR/lib/systemd/system/ethercat-first-boot.service" <<'EOF'
+[Unit]
+Description=EtherCAT First Boot Setup
+After=network.target
+ConditionPathExists=!/var/lib/ethercat/initialized
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/mkdir -p /var/lib/ethercat
+ExecStart=/opt/ethercat/sbin/ethercat_init.sh
+ExecStartPost=/usr/bin/touch /var/lib/ethercat/initialized
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 "$DEB_BUILD_DIR/lib/systemd/system/ethercat-first-boot.service"
+
 # 5.2 Copy Modules
 if [ -d "$MODULES_DIR/lib" ]; then
     # Remove unnecessary files to prevent conflicts

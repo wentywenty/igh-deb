@@ -23,6 +23,20 @@ if [ "$1" = "purge" ] || [ "$1" = "remove" ]; then
         echo "Removing EtherCAT PATH configuration..."
         rm -f "$PROFILE_FILE"
     fi
+
+    if command -v systemctl >/dev/null 2>&1 && [ -d "/run/systemd/system" ]; then
+        systemctl disable --now ethercat.service >/dev/null 2>&1 || true
+        systemctl disable --now ethercat-first-boot.service >/dev/null 2>&1 || true
+        systemctl daemon-reload || true
+        echo "Disabled ethercat.service"
+        echo "Disabled ethercat-first-boot.service"
+    fi
+fi
+
+# Remove first-boot marker only on purge.
+if [ "$1" = "purge" ]; then
+    rm -f /var/lib/ethercat/initialized
+    rmdir /var/lib/ethercat 2>/dev/null || true
 fi
 
 # Refresh dynamic linker cache after package removal/purge.
