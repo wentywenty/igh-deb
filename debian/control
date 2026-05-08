@@ -1,0 +1,10 @@
+Source: ethercat-igh
+Section: kernel
+Priority: optional
+Maintainer: Flora <2321901849@qq.com>
+Build-Depends: debhelper (>= 12), autotools-dev, autoconf, automake, libtool, pkg-config
+
+Package: ethercat-igh
+Architecture: arm64
+Description: IgH EtherCAT Master
+ IgH EtherCAT Master with User Space Libs & Kernel Modules.

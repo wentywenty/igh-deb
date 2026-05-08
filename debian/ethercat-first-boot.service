@@ -1,0 +1,14 @@
+[Unit]
+Description=EtherCAT First Boot Setup
+After=network.target
+ConditionPathExists=!/var/lib/ethercat/initialized
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/mkdir -p /var/lib/ethercat
+ExecStart=/opt/ethercat/sbin/ethercat_init.sh
+ExecStartPost=/usr/bin/touch /var/lib/ethercat/initialized
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

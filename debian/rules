@@ -1,0 +1,88 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+
+include /usr/share/dpkg/pkg-info.mk
+
+# External environment parameters via env.sh / CI
+export CROSS_COMPILE ?= /opt/atom01/orangepi-build/toolchains/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-
+export ARCH ?= arm64
+export KERNEL_SRC ?= /opt/atom01/orangepi-build/kernel/orange-pi-6.1-rk35xx
+export PREFIX ?= /opt/ethercat
+
+%:
+	dh $@ --buildsystem=autoconf
+
+override_dh_auto_configure:
+	cd ethercat && ./bootstrap
+	dh_auto_configure -D ethercat -- \
+		--host=aarch64-none-linux-gnu \
+		--enable-kernel \
+		--enable-generic \
+		--enable-igb \
+		--disable-eoe \
+		--enable-hrtimer \
+		--with-systemdsystemunitdir="/lib/systemd/system" \
+		--prefix="$(PREFIX)" \
+		--with-linux-dir="$(KERNEL_SRC)" \
+		--sysconfdir=/etc \
+		CC="$(CROSS_COMPILE)gcc" \
+		CXX="$(CROSS_COMPILE)g++" \
+		AR="$(CROSS_COMPILE)ar" \
+		LD="$(CROSS_COMPILE)ld" \
+		STRIP="$(CROSS_COMPILE)strip"
+
+override_dh_auto_build:
+	dh_auto_build -D ethercat -- -j$(shell nproc)
+	dh_auto_build -D ethercat -- modules -j$(shell nproc)
+
+override_dh_auto_install:
+	dh_auto_install -D ethercat -- DESTDIR=$(CURDIR)/debian/ethercat-igh
+	dh_auto_install -D ethercat -- modules_install INSTALL_MOD_PATH=$(CURDIR)/debian/ethercat-igh
+	
+	# Strip kernel modules manually as debhelper sometimes misses out-of-tree cross ones
+	find $(CURDIR)/debian/ethercat-igh -name "*.ko" -exec $(CROSS_COMPILE)strip --strip-debug {} \; 2>/dev/null || true
+
+override_dh_install:
+	dh_install
+	
+	if [ -f "debian/ethercat-igh$(PREFIX)/etc/ethercat.conf" ]; then \
+		mkdir -p debian/ethercat-igh/etc; \
+		mv "debian/ethercat-igh$(PREFIX)/etc/ethercat.conf" debian/ethercat-igh/etc/ethercat.conf; \
+		rmdir "debian/ethercat-igh$(PREFIX)/etc" 2>/dev/null || true; \
+	fi
+	
+	if [ -f "debian/ethercat-igh/etc/ethercat.conf" ]; then \
+		sed -i 's/^MASTER0_DEVICE=""/MASTER0_DEVICE="enP3p49s0"/' debian/ethercat-igh/etc/ethercat.conf; \
+		sed -i 's/^DEVICE_MODULES=""/DEVICE_MODULES="igb"/' debian/ethercat-igh/etc/ethercat.conf; \
+	fi
+
+	install -D -m 755 debian/ethercat_init.sh debian/ethercat-igh/opt/ethercat/sbin/ethercat_init.sh
+	install -D -m 644 debian/ethercat-first-boot.service debian/ethercat-igh/lib/systemd/system/ethercat-first-boot.service
+
+	# Remove unnecessary module dep files generated from compilation environment
+	find debian/ethercat-igh/lib -name "modules.alias*" -type f -delete || true
+	find debian/ethercat-igh/lib -name "modules.dep*" -type f -delete || true
+	find debian/ethercat-igh/lib -name "modules.softdep*" -type f -delete || true
+	find debian/ethercat-igh/lib -name "modules.symbols*" -type f -delete || true
+	find debian/ethercat-igh/lib -name "modules.builtin*" -type f -delete || true
+	find debian/ethercat-igh/lib -name "modules.devname*" -type f -delete || true
+
+override_dh_gencontrol:
+	# Inject dynamic kernel version into the package name/version
+	KERNEL_VER=$$(ls debian/ethercat-igh/lib/modules/ | head -n 1); \
+	if [ -n "$$KERNEL_VER" ]; then \
+		FORMATTED_VER=$$(echo "$$KERNEL_VER" | tr '_' '-'); \
+		echo "gencontrol:Version=$(DEB_VERSION_UPSTREAM)-$$FORMATTED_VER" > debian/ethercat-igh.substvars; \
+		dh_gencontrol -- -v"$(DEB_VERSION_UPSTREAM)-$$FORMATTED_VER"; \
+	else \
+		dh_gencontrol; \
+	fi
+
+override_dh_strip:
+	# dh_strip gets confused by cross-compiled non-standard triples, so we disabled it here.
+	# Standard binaries and kernel modules are built stripped by makeopts or our custom STRIP hook.
+
+override_dh_shlibdeps:
+	# Omit shlibdeps completely as we are using an external non-Debian cross-toolchain that trips up dpkg-shlibdeps
+	:
