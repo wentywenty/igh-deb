@@ -6,4 +6,3 @@ ethercat-igh/
 debian/*debhelper*
 debian/ethercat-igh*
 debian/files
-compat
