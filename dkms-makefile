@@ -1,0 +1,15 @@
+# DKMS Kbuild wrapper Makefile
+KDIR ?= /lib/modules/$(KERNELRELEASE)/build
+
+default: modules
+
+modules:
+	$(MAKE) -C $(KDIR) M=$(CURDIR) modules
+
+modules_install:
+	$(MAKE) -C $(KDIR) M=$(CURDIR) INSTALL_MOD_DIR=ethercat modules_install
+
+clean:
+	$(MAKE) -C $(KDIR) M=$(CURDIR) clean
+
+.PHONY: default modules modules_install clean

@@ -1,91 +1,62 @@
 #!/bin/bash
 set -e
 
-# 1. Prevent execution on host during build stage
 if [ "${HOST_BUILD_STAGE:-0}" -eq 1 ]; then
     exit 0
 fi
 
-echo "Configuring EtherCAT kernel modules..."
-
-# 2. Get current kernel version
-KERNEL_VER=$(uname -r)
-
-# 3. Migrate modules if kernel version mismatch
-# Find where the package installed the modules (look into .list file)
-PKG_NAME="$DPKG_MAINTSCRIPT_PACKAGE"
-LIST_FILE="/var/lib/dpkg/info/${PKG_NAME}.list"
-
-if [ -f "$LIST_FILE" ]; then
-    # find path like /lib/modules/x.y.z/ethercat
-    INSTALLED_PATH=$(grep -m 1 "^/lib/modules/.*/ethercat" "$LIST_FILE" || true)
-    
-    if [ -n "$INSTALLED_PATH" ] && [ -d "$INSTALLED_PATH" ]; then
-        # Extract installed kernel version from path
-        INSTALLED_VER=$(echo "$INSTALLED_PATH" | awk -F/ '{print $4}')
-        
-        echo "Package installed modules for kernel: $INSTALLED_VER"
-        echo "System running kernel: $KERNEL_VER"
-        
-        # If versions differ, try to move them
-        if [ "$INSTALLED_VER" != "$KERNEL_VER" ]; then
-            TARGET_PATH="/lib/modules/$KERNEL_VER/ethercat"
-            echo "Version mismatch! Moving modules to $TARGET_PATH ..."
-            
-            mkdir -p "$(dirname "$TARGET_PATH")"
-            cp -r "$INSTALLED_PATH" "$TARGET_PATH"
-            
-            # Optional: Remove old path if it's empty or we want to clean up
-            # rm -rf "$INSTALLED_PATH"
-        fi
+# DKMS: add, build, install kernel modules
+NAME=ethercat
+VERSION=1.7.1
+if [ "$1" = "configure" ]; then
+    if [ ! -d "/lib/modules/$(uname -r)/build" ]; then
+        echo "ERROR: Kernel headers not found at /lib/modules/$(uname -r)/build" >&2
+        echo "" >&2
+        echo "DKMS needs kernel headers to compile the $NAME kernel modules." >&2
+        echo "Install the matching kernel headers package, for example:" >&2
+        echo "  Ubuntu/Debian:  apt install linux-headers-$(uname -r)" >&2
+        echo "  Rockchip:       apt install linux-headers-current-rockchip-rk3588" >&2
+        echo "  Or search:      apt search linux-headers | grep $(uname -r)" >&2
+        exit 1
     fi
-else
-    echo "Warning: Could not find package list file, skipping module migration."
+    dkms add -m $NAME -v $VERSION
+    dkms build -m $NAME -v $VERSION
+    dkms install -m $NAME -v $VERSION
 fi
 
-# 4. Update module dependencies
-# Use -F if System.map exists, otherwise run depmod -a
-if [ -f "/boot/System.map-$KERNEL_VER" ]; then
-    depmod -F "/boot/System.map-$KERNEL_VER" "$KERNEL_VER"
-else
-    depmod -a "$KERNEL_VER"
-fi
-
-echo "EtherCAT modules configured for kernel $KERNEL_VER"
-
-# 5. Add /opt/ethercat/bin to system PATH
+# PATH
 PROFILE_DIR="/etc/profile.d"
 PROFILE_FILE="$PROFILE_DIR/ethercat.sh"
-
 if [ ! -d "$PROFILE_DIR" ]; then
     mkdir -p "$PROFILE_DIR"
 fi
-
-echo "Adding /opt/ethercat/bin to system PATH..."
 cat > "$PROFILE_FILE" <<'EOF'
 # Add EtherCAT tools to PATH
 if [ -d "/opt/ethercat/bin" ]; then
     export PATH="/opt/ethercat/bin:$PATH"
 fi
 EOF
-
 chmod 644 "$PROFILE_FILE"
-echo "PATH configuration installed to $PROFILE_FILE"
 
-# 6. Refresh dynamic linker cache so libethercat is found without LD_LIBRARY_PATH
 if command -v ldconfig >/dev/null 2>&1; then
-    echo "Refreshing dynamic linker cache..."
     ldconfig
 fi
 
-# 7. Enable first-boot initialization service
+# Auto-configure device module: igb for Rockchip kernels, generic for others
+if [ -f /etc/ethercat.conf ]; then
+    KERNEL_VER=$(uname -r)
+    if echo "$KERNEL_VER" | grep -qi "rockchip\|rk35"; then
+        sed -i 's/^DEVICE_MODULES=""/DEVICE_MODULES="igb"/' /etc/ethercat.conf
+    else
+        sed -i 's/^DEVICE_MODULES=""/DEVICE_MODULES="generic"/' /etc/ethercat.conf
+    fi
+fi
+
 if command -v systemctl >/dev/null 2>&1 && [ -d "/run/systemd/system" ]; then
     mkdir -p /var/lib/ethercat
     systemctl daemon-reload || true
     systemctl enable ethercat.service >/dev/null 2>&1 || true
     systemctl enable ethercat-first-boot.service >/dev/null 2>&1 || true
-    echo "Enabled ethercat.service"
-    echo "Enabled ethercat-first-boot.service"
 fi
 
 exit 0

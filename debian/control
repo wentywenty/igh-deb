@@ -5,6 +5,12 @@ Maintainer: Flora <2321901849@qq.com>
 Build-Depends: debhelper (>= 12), autotools-dev, autoconf, automake, libtool, pkg-config
 
 Package: ethercat-igh
-Architecture: arm64
-Description: IgH EtherCAT Master
- IgH EtherCAT Master with User Space Libs & Kernel Modules.
+Architecture: any
+Depends: dkms, ${misc:Depends}, ${shlibs:Depends}
+Description: IgH EtherCAT Master with DKMS kernel module support
+ IgH EtherCAT Master userspace tools, libraries, systemd services,
+ configuration files, and DKMS kernel module source.
+ .
+ Kernel modules (ec_master, ec_generic, ec_igb and others) are
+ automatically built via DKMS for the running kernel on install
+ and on every kernel update.

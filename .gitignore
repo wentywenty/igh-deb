@@ -2,7 +2,21 @@
 output
 ethercat-igh/
 
-# debhelper build outputs
+# dpkg build artifacts
+*.deb
+*.buildinfo
+*.changes
+
+# debhelper outputs
 debian/*debhelper*
-debian/ethercat-igh*
+debian/*.log
+debian/*.substvars
+debian/debhelper-build-stamp
 debian/files
+debian/.debhelper/
+
+# Package staging
+debian/ethercat-igh*
+debian/ethercat-dkms*
+debian/dkms-src/
+

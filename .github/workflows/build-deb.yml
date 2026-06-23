@@ -1,0 +1,62 @@
+name: Build IgH EtherCAT Deb Package
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.PKG_VERSION }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Tag vs changelog version check
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          CHANGELOG_VERSION=$(head -1 debian/changelog | grep -oP '\((.*?)\)' | tr -d '()' | cut -d'-' -f1)
+
+          echo "Tag version:       $TAG_VERSION"
+          echo "Changelog version: $CHANGELOG_VERSION"
+
+          if [ "$TAG_VERSION" != "$CHANGELOG_VERSION" ]; then
+            echo "::error::Version mismatch! tag=v$TAG_VERSION, changelog=$CHANGELOG_VERSION"
+            exit 1
+          fi
+
+          echo "Tag matches changelog: v$TAG_VERSION"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            build-essential dpkg-dev debhelper devscripts \
+            autoconf automake libtool pkg-config
+
+      - name: Build deb package
+        run: |
+          dpkg-buildpackage -us -uc -b
+          mv ../ethercat-igh_*.deb ../ethercat-dkms_*.deb . 2>/dev/null || true
+          mv ../ethercat-igh_*.deb . 2>/dev/null || true
+
+      - name: Set version
+        id: version
+        run: |
+          VER=$(dpkg-parsechangelog -S Version | cut -d'-' -f1 || echo "unknown")
+          echo "PKG_VERSION=$VER" >> $GITHUB_OUTPUT
+
+      - name: Upload deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethercat-igh-v${{ steps.version.outputs.PKG_VERSION }}-${{ runner.arch }}
+          path: "*.deb"
+
+      - name: Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.deb"

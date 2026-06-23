@@ -23,24 +23,27 @@ sudo apt install build-essential debhelper autoconf automake libtool pkg-config
 
 ## Local & Cross Compilation
 
-The package is configured by default to cross-compile for `aarch64`. Modify the `env.sh` file to specify your **cross-compiler path** and **kernel source path**:
+For cross-compilation (e.g. for `arm64`), set the variables in `debian/rules` or export them before building:
 
 ```bash
-# e.g., in env.sh
 export CROSS_COMPILE=/path/to/gcc-arm-.../bin/aarch64-none-linux-gnu-
 export KERNEL_SRC=/path/to/orange-pi-kernel-source
+export ARCH=arm64
 ```
 
 > **Note**: Your kernel source (`KERNEL_SRC`) must be **pre-compiled** (i.e. it must have a `.config` and compiled objects in the source tree), otherwise the kernel modules cannot be successfully built.
 
-Load the environment variables and run the native Debian build command:
+Run the Debian build command:
 
 ```bash
-source env.sh
 dpkg-buildpackage -us -uc -b -aarm64
 ```
 
-These parameters can also be dynamically injected via CI pipelines during the build process without modifying the script.
+For native builds (same architecture as host), just run:
+
+```bash
+dpkg-buildpackage -us -uc -b
+```
 
 ## Artifact Location
 
