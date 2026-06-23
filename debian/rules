@@ -19,27 +19,15 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null
 	dh $@
 
 override_dh_auto_configure:
-	@if [ ! -d "$(KERNEL_SRC)" ]; then \
-		echo "ERROR: Kernel headers not found at $(KERNEL_SRC)" >&2; \
-		echo "" >&2; \
-		echo "DKMS needs kernel headers to compile the EtherCAT kernel modules." >&2; \
-		echo "Install the matching kernel headers package, for example:" >&2; \
-		echo "  Ubuntu/Debian:  apt install linux-headers-$$(uname -r)" >&2; \
-		echo "  Rockchip:       apt install linux-headers-current-rockchip-rk3588" >&2; \
-		echo "  Or search:      apt search linux-headers | grep $$(uname -r)" >&2; \
-		exit 1; \
-	fi
 	cd ethercat && ./bootstrap
 	dh_auto_configure -D ethercat -- \
 		--host=$(DEB_HOST_GNU_TYPE) \
-		--enable-kernel \
 		--enable-generic \
 		--enable-igb \
 		--disable-eoe \
 		--enable-hrtimer \
 		--with-systemdsystemunitdir="/lib/systemd/system" \
 		--prefix="$(PREFIX)" \
-		--with-linux-dir="$(KERNEL_SRC)" \
 		--sysconfdir=/etc \
 		--libdir=\$${prefix}/lib/$(DEB_HOST_MULTIARCH)
 
